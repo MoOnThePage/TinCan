@@ -1,5 +1,110 @@
 import streamlit as st
+import jwt
+import datetime
+import hashlib
+import hmac
 import os
+
+########################################################################################################################
+### Authentication System
+########################################################################################################################
+class EnterpriseAuth:
+    def __init__(self):
+        self.allowed_users = {
+            "user1": {
+                "id": "user_001",
+                "email": "user1@company.com",
+                "password_hash": st.secrets["users"]["user1_hash"],  # SHA-256 hash
+                "role": "admin"
+            },
+            "user2": {
+                "id": "user_002",
+                "email": "user2@company.com",
+                "password_hash": st.secrets["users"]["user2_hash"],
+                "role": "user"
+            }
+        }
+        self.jwt_secret = st.secrets["jwt"]["secret"]
+        self.token_expiry = 3600  # 1 hour
+
+    def verify_password(self, password, stored_hash):
+        """Verify password against stored hash"""
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        # Use hmac.compare_digest for timing attack protection
+        return hmac.compare_digest(password_hash, stored_hash)
+
+    def generate_token(self, user_id):
+        """Generate JWT token"""
+        payload = {
+            'user_id': user_id,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=self.token_expiry),
+            'iat': datetime.datetime.utcnow()
+        }
+        return jwt.encode(payload, self.jwt_secret, algorithm='HS256')
+
+    def verify_token(self, token):
+        """Verify JWT token"""
+        try:
+            payload = jwt.decode(token, self.jwt_secret, algorithms=['HS256'])
+            return payload['user_id']
+        except jwt.ExpiredSignatureError:
+            st.error("Session expired. Please login again.")
+            return None
+        except jwt.InvalidTokenError:
+            return None
+
+    def login_form(self):
+        """Display login form"""
+        with st.form("login"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Login")
+
+            if submit:
+                if username in self.allowed_users:
+                    user = self.allowed_users[username]
+                    if self.verify_password(password, user["password_hash"]):
+                        token = self.generate_token(user["id"])
+                        st.session_state["auth_token"] = token
+                        st.session_state["user"] = user
+                        st.rerun()
+                    else:
+                        st.error("Invalid password")
+                else:
+                    st.error("User not found")
+        return False
+
+    def check_auth(self):
+        """Main authentication check"""
+        # Check for token in session
+        if "auth_token" in st.session_state:
+            user_id = self.verify_token(st.session_state["auth_token"])
+            if user_id:
+                # Token valid, find user
+                for username, user in self.allowed_users.items():
+                    if user["id"] == user_id:
+                        st.session_state["user"] = user
+                        return True
+            # Token invalid or expired
+            if "auth_token" in st.session_state:
+                del st.session_state["auth_token"]
+
+        # Show login form
+        st.title("🔒 Secure Login")
+        return self.login_form()
+
+
+# Usage
+auth = EnterpriseAuth()
+if not auth.check_auth():
+    st.stop()
+
+# Your app here - user is authenticated
+user = st.session_state["user"]
+st.sidebar.write(f"Welcome, {user['email']}")
+########################################################################################################################
+### EOF Authentication System
+########################################################################################################################
 
 st.sidebar.title("TinCAN - Work Space")
 st.sidebar.image("img.png")
