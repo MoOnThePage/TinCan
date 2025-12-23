@@ -9,11 +9,45 @@ import os
 ### Session Persistence
 ########################################################################################################################
 # Initialize session state for persistence
-if 'initialized' not in st.session_state:
-    st.session_state.update({
-        'initialized': True,
-        # Other session state keys will persist across refreshes
-    })
+def persist_session_state():
+    """Persist critical session state across refreshes"""
+    # Keys to persist
+    persistent_keys = ["auth_token", "user", "last_login"]
+
+    # Check if we have persisted data
+    if 'persisted_data' not in st.session_state:
+        st.session_state.persisted_data = {}
+
+    # On page load, restore from persistence
+    if not st.session_state.persisted_data:
+        # Try to get from browser local storage via query params
+        query_params = st.experimental_get_query_params()
+        if "persisted" in query_params:
+            import json
+            import base64
+            try:
+                persisted = base64.b64decode(query_params["persisted"][0]).decode()
+                st.session_state.persisted_data = json.loads(persisted)
+
+                # Restore persisted keys to session state
+                for key in persistent_keys:
+                    if key in st.session_state.persisted_data:
+                        st.session_state[key] = st.session_state.persisted_data[key]
+            except:
+                pass
+
+    # On changes, update persistence
+    for key in persistent_keys:
+        if key in st.session_state:
+            st.session_state.persisted_data[key] = st.session_state[key]
+
+    # Save to query params (simulates local storage)
+    if st.session_state.persisted_data:
+        import json
+        import base64
+        persisted_str = json.dumps(st.session_state.persisted_data)
+        encoded = base64.b64encode(persisted_str.encode()).decode()
+        st.experimental_set_query_params(persisted=encoded)
 ########################################################################################################################
 ### EOF Session Persistence
 ########################################################################################################################
@@ -22,6 +56,7 @@ if 'initialized' not in st.session_state:
 ### Authentication System
 ########################################################################################################################
 class EnterpriseAuth:
+    persist_session_state()
     def __init__(self):
         self.allowed_users = {
             "user1": {
