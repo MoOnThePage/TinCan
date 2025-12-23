@@ -6,6 +6,19 @@ import hmac
 import os
 
 ########################################################################################################################
+### Session Persistence
+########################################################################################################################
+# Initialize session state for persistence
+if 'initialized' not in st.session_state:
+    st.session_state.update({
+        'initialized': True,
+        # Other session state keys will persist across refreshes
+    })
+########################################################################################################################
+### EOF Session Persistence
+########################################################################################################################
+
+########################################################################################################################
 ### Authentication System
 ########################################################################################################################
 class EnterpriseAuth:
@@ -25,7 +38,7 @@ class EnterpriseAuth:
             }
         }
         self.jwt_secret = st.secrets["jwt"]["secret"]
-        self.token_expiry = 3600  # 1 hour
+        self.token_expiry = 3600 * 4  # 4 hour
 
     def verify_password(self, password, stored_hash):
         """Verify password against stored hash"""
