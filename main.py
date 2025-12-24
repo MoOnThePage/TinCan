@@ -56,7 +56,7 @@ def persist_session_state():
 ### Authentication System
 ########################################################################################################################
 class EnterpriseAuth:
-    persist_session_state()
+    # persist_session_state()
     def __init__(self):
         self.allowed_users = {
             "user1": {
@@ -237,3 +237,33 @@ if files:
         st.rerun()
 else:
     st.info("Upload area above • Delete buttons appear next to each file")
+
+########################################################################################################################
+### TODO: Chat Section
+########################################################################################################################
+st.divider()
+chat_header = "whisper"
+st.header(chat_header.upper())
+
+
+# TODO: save chat history to JSON file
+
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display chat messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# User Input
+if prompt := st.chat_input("speak softly"):
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    # Display user message in chat message container
+    with st.chat_message("user"):
+        st.markdown(prompt)
+########################################################################################################################
+### EOF Chat Section
+########################################################################################################################
