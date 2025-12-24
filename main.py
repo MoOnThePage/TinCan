@@ -56,7 +56,7 @@ def persist_session_state():
 ### Authentication System
 ########################################################################################################################
 class EnterpriseAuth:
-    # persist_session_state()
+    persist_session_state()
     def __init__(self):
         self.allowed_users = {
             "user1": {
